@@ -1,0 +1,321 @@
+---
+title: "straw1"
+author: "ma415"
+format: 
+  html:
+    embed-resources: true
+editor: visual
+---
+
+#URL=https://quickstats.nass.usda.gov/results/806E4FDF-C7DF-3DCC-8381-B220597B08EC
+
+# Preparing data for analysis
+
+## Introduction: foundations
+
+Before we begin to work with the strawberry data, let's talk about how we will approach the work.
+
+### Data cleaning and organization
+
+Cleaning and organizing data for analysis is an essential skill for data scientists. Serious data analyses must be presented with the data on which the results depend. The credibility of data analysis and modelling depends on the care taken in data preparation and organization.
+
+#### References
+
+In their handbook ["An introduction to data cleaning with R" by Edwin de Jonge and Mark van der Loo](https://cran.r-project.org/doc/contrib/de_Jonge+van_der_Loo-Introduction_to_data_cleaning_with_R.pdf), de Jonge and van der Loo go into detail about specific data cleaning isssues and how to handle them in R.
+
+["Problems, Methods, and Challenges in Comprehensive Data Cleansing" by Heiko Müller and Johann-Christoph Freytag](https://www.researchgate.net/profile/Heiko-Mueller/publication/228929938_Problems_methods_and_challenges_in_comprehensive_data_cleansing/links/09e415101b58541e2c000000/Problems-methods-and-challenges-in-comprehensive-data-cleansing.pdf) is a good companion to the de Jonge and van der Loo handbook, offering additional issues in their discussion.
+
+### Attitudes
+
+Mechanistic descriptions of data cleaning methods are insufficient.
+
+#### Data is the product (or by-product) of purposeful human activity
+
+Much of the data used in analysis accessed on local databases or online which may create the impression that the data have been carefully curated. Beware. Data are produced by people for a purpose, with a point-of-view, and at a time and location that may affect the data. The provenance and lineage of the data are meta data you should include when reporting analysis. Data collection is purposeful human activity with all of the risks and weaknesses that are part of any purposeful human activity.
+
+#### Data is language
+
+Data has meaning. Data can be included in sentences related to the meaning of the data. Cleaning and organizing data should be informed by the meaning the data convey and how that meaning relates to the research you are doing do achieve this important result.
+
+-   Immerse yourself in the data. Put data into context.
+
+-   Visualize the data to find problems, confirm your understandings, and plan your data organization. People do a bad job of seeing meaningful patterns in data but a good job of seeing patterns of all kinds when data are rendered as plots. As you product and show visualizations, ask your self and those who view your presentations, "what do you see?" and "what do you wonder?"
+
+## Example: Strawberries
+
+### Public information
+
+[WHO says strawberries may not be so safe for you--2017March16](https://med.news.am/eng/news/13621/who-says-strawberries-may-not-be-so-safe-for-you.html)
+
+[Pesticides + poison gases = cheap, year-round strawberries 2019March20](https://www.ewg.org/foodnews/strawberries.php)
+
+[Multistate Outbreak of Hepatitis A Virus Infections Linked to Fresh Organic Strawberries-2022March5](https://www.cdc.gov/hepatitis/outbreaks/fresh-strawberries-2022/?CDC_AAref_Val=https://www.cdc.gov/hepatitis/outbreaks/2022/hav-contaminated-food/index.htm)
+
+[Strawberry makes list of cancer-fighting foods-2023May31](https://issuu.com/mechlocal/docs/053123_mech_asf/s/25386339)
+
+## What is the question?
+
+-   Where they are grown? By whom?
+
+-   Are they really loaded with carcinogenic poisons?
+
+-   Are they really good for your health? Bad for your health?
+
+-   Are organic strawberries carriers of deadly diseases?
+
+-   When I go to the market should I buy conventional or organic strawberries?
+
+## The data
+
+The data set for this assignment has been selected from:
+
+[strawberries 2025feb24](https://quickstats.nass.usda.gov/results/806E4FDF-C7DF-3DCC-8381-B220597B08EC)
+
+<!-- and has been stored on the blackboard as strawberries25_v3.csv. -->
+
+## USDA NASS
+
+```{r}
+#| label: load libraries
+#| warning: false
+#| message: false
+
+library(knitr)  
+library(kableExtra)
+library(tidyverse)
+library(stringr)
+```
+
+## Read the file
+
+```{r}
+#| label: read data - glimpse 
+
+data <- read_csv("strawb_mar6.csv", col_names = TRUE)
+
+glimpse(data)
+```
+
+Examine the data. How is it organized?
+
+```{r}
+
+##transfer to numerical
+
+data <- data %>%
+  mutate(
+    Value = as.numeric(
+      str_replace_all(
+        str_replace_all(Value, ",", ""),
+        "^(\\(D\\)|\\(NA\\)|\\(Z\\))$", NA_character_
+      )
+    ),
+    `CV (%)` = as.numeric(
+      str_replace_all(
+        str_replace_all(`CV (%)`, ",", ""),
+        "^(\\(D\\)|\\(NA\\)|\\(Z\\))$", NA_character_
+      )
+    )
+  )
+
+summary(data)
+
+
+```
+
+```{r}
+# eliminate single value column
+drop_one_col <- function(data) {
+  judge_c <- sapply(data, function(col) {
+    if (is.list(col)) col <- unlist(col)
+    length(unique(col)) == 1
+  })
+  return(data[, !judge_c, drop = FALSE])
+}
+
+
+data <- drop_one_col(data)
+
+#delete empty col
+data <- data[, !apply(is.na(data), 2, all)]
+
+
+```
+
+```{r}
+
+#seperate
+
+data <- data |>
+  separate_wider_delim(  cols = `Data Item`,
+                         delim = " - ",
+                         names = c("Fruit",
+                                 "Category"),
+                         too_many = "error",
+                         too_few = "align_start"
+                       )
+
+data <- data |>
+  separate_wider_delim(  cols = Fruit,
+                         delim = ", ",
+                         names = c("Fruit",
+                                 "ORGANIC",
+                                 "Organic detail"),
+                         
+                         too_many = "error",
+                         too_few = "align_start"
+                       )
+
+data$Commodity <- NULL
+
+
+
+data <- data |>
+  separate_wider_delim(  cols = `Domain Category`,
+                         delim = ": ",
+                         names = c("Chemical",
+                                 "Amount"),
+                         
+                         too_many = "error",
+                         too_few = "align_start"
+                       )
+
+data$Domain <- NULL
+```
+
+```{r}
+
+# filter by chemical
+
+chemical_data <- data |>
+  filter(str_detect(Chemical, "^CHEMICAL"))
+
+chemical_data <- chemical_data |>
+  separate_wider_delim(  cols = Chemical,
+                         delim = ", ",
+                         names = c("null",
+                                 "Chemical_Genre"),
+                         
+                         too_many = "error",
+                         too_few = "align_start"
+                       )
+
+chemical_data <- chemical_data |> drop_one_col()
+
+```
+
+```{r}
+
+#filter by organic
+
+fruit_data <- data |>
+  filter(Fruit == "STRAWBERRIES")
+View(fruit_data)
+```
+
+**Plot**
+
+```{r}
+View(data)
+
+#Question 1
+
+table(fruit_data$State)
+View(fruit_data)
+#the distribution in data 
+
+
+library(ggplot2)
+#acre data
+fruit_data$Category
+acre <- fruit_data %>%
+  filter(Category == "ACRES HARVESTED")
+
+acre$Organic <- ifelse(is.na(acre$ORGANIC),"Conventional","ORGANIC")
+
+#NA for converntional 
+state_summary <- acre %>%
+  group_by(State) %>%
+  summarise(Total_Acres = sum(Value, na.rm = TRUE)) %>%
+  arrange(desc(Total_Acres))
+
+print(state_summary)
+
+#
+acre$Organic <- ifelse(acre$ORGANIC == "ORGANIC",1,0)
+# visualize
+
+ggplot(state_summary, aes(x = reorder(State, Total_Acres), y = Total_Acres)) +
+  geom_col(fill = "red") +
+  coord_flip() +
+  theme_minimal()
+
+organic_summary <- acre %>%
+  group_by(Organic) %>%
+  summarise(Total_Acres = sum(Value, na.rm = TRUE)) %>%
+  arrange(desc(Total_Acres))
+print(organic_summary)
+
+
+
+
+
+```
+
+```{r}
+#Question 2
+View(chemical_data)
+```
+
+```{r}
+
+fruit_data$ORGANIC
+organic_data <- filter(fruit_data,ORGANIC=="ORGANIC")
+
+View(organic_data)
+```
+
+```{r}
+
+#matching the toxic list
+pattern <- "CAPTAFOL|DIAZINON|MALATHION|Dibromoethane|Glyphosate|DDT"
+
+row_indices <- which(grepl(pattern, chemical_data$Amount, ignore.case = TRUE))
+
+matches <- chemical_data[row_indices, ]
+
+matches$OriginalRow <- row_indices
+matches
+
+
+
+```
+
+```{r}
+#find the most amount of chemical 
+
+chemical_data2 <- chemical_data |>
+  filter(Category == "APPLICATIONS, MEASURED IN LB / ACRE / YEAR, AVG")
+
+result <- chemical_data2 %>%
+  group_by(Amount) %>%
+  summarise(AvgValue = mean(Value, na.rm = TRUE))
+print(result)
+
+result_no_zero <- result %>%
+  filter(AvgValue != 0)
+
+
+
+ggplot(result_no_zero, aes(x=reorder(Amount,AvgValue), y=AvgValue))+
+  geom_bar(stat = "identity", fill = "green", width = 0.8)+
+  theme_minimal()+
+  labs(title="Chemical Amount",
+       x="Chemical",
+       y="Average Value")+
+  theme(axis.text.y = element_text(size = 5))+
+  geom_text(aes(label = round(AvgValue, 1)),
+            angle = 0, hjust = 0, vjust = 0.4, size = 2)+
+  coord_flip()
+  
+```

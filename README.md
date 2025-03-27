@@ -1,5 +1,2 @@
-i am Sichen Zhu
-
-I am from NINGBO
-
-hiii
+Please read strawberry_final.qmd
+Its my final version.

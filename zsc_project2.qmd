@@ -210,18 +210,17 @@ chemical_data <- chemical_data |> drop_one_col()
 
 fruit_data <- data |>
   filter(Fruit == "STRAWBERRIES")
-View(fruit_data)
+
 ```
 
 **Plot**
 
 ```{r}
-View(data)
+
 
 #Question 1
 
 table(fruit_data$State)
-View(fruit_data)
 #the distribution in data 
 
 
@@ -240,7 +239,8 @@ state_summary <- acre %>%
   arrange(desc(Total_Acres))
 
 print(state_summary)
-
+kable(state_summary, caption = "State-wise Total Acres Summary")%>%
+  kable_styling(font_size = 14, bootstrap_options = c("striped", "hover", "condensed", "responsive"))
 #
 acre$Organic <- ifelse(acre$ORGANIC == "ORGANIC",1,0)
 # visualize
@@ -285,9 +285,30 @@ row_indices <- which(grepl(pattern, chemical_data$Amount, ignore.case = TRUE))
 matches <- chemical_data[row_indices, ]
 
 matches$OriginalRow <- row_indices
-matches
 
 
+match_clean<-na.omit(matches)
+match_clean<-match_clean %>%
+  filter(Category=="APPLICATIONS, MEASURED IN LB / ACRE / YEAR, AVG")
+
+head(match_clean)
+
+
+library(ggplot2)
+
+barplot(match_clean$Value)
+
+yearly_summary <- match_clean %>%
+  group_by(Year) %>%
+  summarise(Total_Value = Value)
+
+
+ggplot(yearly_summary, aes(x = factor(Year), y = Total_Value, fill = factor(Year))) +
+  geom_bar(stat = "identity") +
+  labs(title = "Yearly Value Distribution", x = "Year", y = "MALATHION USE") +
+  theme_minimal() +
+  scale_fill_manual(values = c("2021" = "steelblue", "2023" = "orange")) +
+  theme(legend.position = "none")  
 
 ```
 
@@ -303,19 +324,54 @@ result <- chemical_data2 %>%
 print(result)
 
 result_no_zero <- result %>%
-  filter(AvgValue != 0)
+  filter(AvgValue != 0)|>
+  arrange(desc(AvgValue))
+head(result_no_zero)
+#######前10
+result_clean<-head(result_no_zero,10)
 
+kable(result_clean)%>%
+  kable_styling(font_size = 14, bootstrap_options = c("striped", "hover", "condensed", "responsive"))
 
-
-ggplot(result_no_zero, aes(x=reorder(Amount,AvgValue), y=AvgValue))+
+ggplot(result_clean, aes(x=reorder(Amount,AvgValue), y=AvgValue))+
   geom_bar(stat = "identity", fill = "green", width = 0.8)+
   theme_minimal()+
   labs(title="Chemical Amount",
        x="Chemical",
        y="Average Value")+
-  theme(axis.text.y = element_text(size = 5))+
+  theme(axis.text.y = element_text(size = 10))+
   geom_text(aes(label = round(AvgValue, 1)),
-            angle = 0, hjust = 0, vjust = 0.4, size = 2)+
+            angle = 0, hjust = 0, vjust = 0.4, size = 4)+
   coord_flip()
+
+
   
+```
+
+```{r}
+#organic sales in fresh market
+organic_freshmarket <- organic_data |> 
+  filter(`Organic detail`== "FRESH MARKET", Category == "SALES, MEASURED IN $") |>
+  drop_one_col()
+head(organic_freshmarket)
+
+data<- organic_freshmarket %>%
+  filter(!is.na(Value)) %>%
+  select(1:3)
+
+#barplot 
+ggplot(data, aes(x = State, y = Value, fill = State)) +
+  geom_bar(stat = "identity", show.legend = FALSE) +
+  labs(title = "State-wise Value Distribution", x = "State", y = "Value") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+kable(data, caption = "State-wise Value Table", align = "c") %>%
+  kable_styling(
+    font_size = 14, 
+    bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
+    full_width = FALSE
+  ) %>%
+  column_spec(1, bold = TRUE) 
+
 ```

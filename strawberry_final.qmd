@@ -96,7 +96,7 @@ data <- read_csv("strawb_mar6.csv", col_names = TRUE)
 glimpse(data)
 ```
 
-Examine the data. How is it organized?
+Some of original data is str, so we change it to num.
 
 ```{r}
 
@@ -123,6 +123,8 @@ summary(data)
 
 ```
 
+Function to eliminate the single value row.
+
 ```{r}
 # eliminate single value column
 drop_one_col <- function(data) {
@@ -141,6 +143,8 @@ data <- data[, !apply(is.na(data), 2, all)]
 
 
 ```
+
+split data
 
 ```{r}
 
@@ -183,6 +187,8 @@ data <- data |>
 data$Domain <- NULL
 ```
 
+We wanna to discuss about organic and conventional strawberry. So we filter the data with organic and chemical.
+
 ```{r}
 
 # filter by chemical
@@ -215,17 +221,11 @@ fruit_data <- data |>
 
 **Plot**
 
+The red plot shows the total area of strawberry planting. We can find Cali and Florida plant most of the strawberry in area scale.
+
 ```{r}
-
-
-#Question 1
-
-table(fruit_data$State)
-#the distribution in data 
-
-
+#fine the area data from fruit_data
 library(ggplot2)
-#acre data
 fruit_data$Category
 acre <- fruit_data %>%
   filter(Category == "ACRES HARVESTED")
@@ -241,10 +241,9 @@ state_summary <- acre %>%
 print(state_summary)
 kable(state_summary, caption = "State-wise Total Acres Summary")%>%
   kable_styling(font_size = 14, bootstrap_options = c("striped", "hover", "condensed", "responsive"))
-#
 acre$Organic <- ifelse(acre$ORGANIC == "ORGANIC",1,0)
-# visualize
 
+# visualize of total area of planting starberry
 ggplot(state_summary, aes(x = reorder(State, Total_Acres), y = Total_Acres)) +
   geom_col(fill = "red") +
   coord_flip() +
@@ -256,15 +255,15 @@ organic_summary <- acre %>%
   arrange(desc(Total_Acres))
 print(organic_summary)
 
+# visualize of organic labeled area
+acre_organic <- acre |>
+  filter(ORGANIC=="ORGANIC")
 
+ggplot(acre_organic, aes(x = reorder(State, Value), y = Value)) +
+    geom_col(fill = "blue") +
+  coord_flip() +
+  theme_minimal()
 
-
-
-```
-
-```{r}
-#Question 2
-View(chemical_data)
 ```
 
 ```{r}
@@ -272,8 +271,9 @@ View(chemical_data)
 fruit_data$ORGANIC
 organic_data <- filter(fruit_data,ORGANIC=="ORGANIC")
 
-View(organic_data)
 ```
+
+We want to find if there are some harmful chemical used in planting. So we match toxic list with the chemical data. The result is that we find the MALATHION is widely used in California and Florida. Then we make a graph for 2021 and 2023 usage.
 
 ```{r}
 
@@ -341,7 +341,7 @@ ggplot(result_clean, aes(x=reorder(Amount,AvgValue), y=AvgValue))+
        y="Average Value")+
   theme(axis.text.y = element_text(size = 10))+
   geom_text(aes(label = round(AvgValue, 1)),
-            angle = 0, hjust = 0, vjust = 0.4, size = 4)+
+            angle = 0, hjust = 0, vjust = 0.4, size = 2)+
   coord_flip()
 
 

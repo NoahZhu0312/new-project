@@ -221,7 +221,7 @@ fruit_data <- data |>
 
 **Plot**
 
-The red plot shows the total area of strawberry planting. We can find Cali and Florida plant most of the strawberry in area scale.
+The red plot shows the total area of strawberry planting. We can find Cali and Florida plant most of the strawberry in area scale. Blue one is focusing on organic data.
 
 ```{r}
 #fine the area data from fruit_data
@@ -263,7 +263,6 @@ ggplot(acre_organic, aes(x = reorder(State, Value), y = Value)) +
     geom_col(fill = "blue") +
   coord_flip() +
   theme_minimal()
-
 ```
 
 ```{r}
@@ -278,9 +277,9 @@ We want to find if there are some harmful chemical used in planting. So we match
 ```{r}
 
 #matching the toxic list
-pattern <- "CAPTAFOL|DIAZINON|MALATHION|Dibromoethane|Glyphosate|DDT"
+list <- "CAPTAFOL|DIAZINON|MALATHION|Dibromoethane|Glyphosate|DDT"
 
-row_indices <- which(grepl(pattern, chemical_data$Amount, ignore.case = TRUE))
+row_indices <- which(grepl(list, chemical_data$Amount, ignore.case = TRUE))
 
 matches <- chemical_data[row_indices, ]
 
@@ -312,6 +311,10 @@ ggplot(yearly_summary, aes(x = factor(Year), y = Total_Value, fill = factor(Year
 
 ```
 
+We want to find the chemicals that are used the most per acre per year on average.
+
+Most of chemical in the graph is toxic. Especially for the Top 3, **Chloropicrin**, **Metam-potassium** and **Dichloropropen**e, they are highly toxic.
+
 ```{r}
 #find the most amount of chemical 
 
@@ -327,7 +330,7 @@ result_no_zero <- result %>%
   filter(AvgValue != 0)|>
   arrange(desc(AvgValue))
 head(result_no_zero)
-#######前10
+#top 10
 result_clean<-head(result_no_zero,10)
 
 kable(result_clean)%>%
@@ -348,6 +351,40 @@ ggplot(result_clean, aes(x=reorder(Amount,AvgValue), y=AvgValue))+
   
 ```
 
+We also want to find the most widely used chemicals.
+
+Notably, several widely used chemicals such as **Captan**, **Fludioxonil**, and **Chloropicrin** are associated with significant health risks. Captan, for example, is classified as a probable carcinogen under California’s Proposition 65, and Chloropicrin is a highly toxic soil fumigant known to cause respiratory irritation.
+
+```{r}
+chemical_data3 <- chemical_data |>
+  filter(Category == "TREATED, MEASURED IN PCT OF AREA BEARING, AVG")
+
+result2 <- chemical_data3 |>
+  group_by(Amount) |>
+  summarise(AvgValue = mean(Value, na.rm = TRUE))
+print(result2)
+
+result_no_zero2 <- result2 %>%
+  filter(AvgValue != 0)|>
+  arrange(desc(AvgValue))
+
+result_clean2<-head(result_no_zero2,20)
+
+
+ggplot(result_clean2, aes(x=reorder(Amount,AvgValue), y=AvgValue))+
+  geom_bar(stat = "identity", fill = "purple", width = 0.8)+
+  theme_minimal()+
+  labs(title="Area percentage",
+       x="Chemical",
+       y="Area Percentage")+
+  theme(axis.text.y = element_text(size = 10))+
+  geom_text(aes(label = round(AvgValue, 1)),
+            angle = 0, hjust = 0, vjust = 0.4, size = 2)+
+  coord_flip()
+```
+
+Then, I try to find the organic sales in fresh market. In the graph, Florida provides most of organic strawberry sales' revenue. But, unfortunately, we are lack of data from California, the biggest planting area of strawberry.
+
 ```{r}
 #organic sales in fresh market
 organic_freshmarket <- organic_data |> 
@@ -355,18 +392,18 @@ organic_freshmarket <- organic_data |>
   drop_one_col()
 head(organic_freshmarket)
 
-data<- organic_freshmarket %>%
+data2<- organic_freshmarket %>%
   filter(!is.na(Value)) %>%
   select(1:3)
 
 #barplot 
-ggplot(data, aes(x = State, y = Value, fill = State)) +
+ggplot(data2, aes(x = State, y = Value, fill = State)) +
   geom_bar(stat = "identity", show.legend = FALSE) +
   labs(title = "State-wise Value Distribution", x = "State", y = "Value") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 
-kable(data, caption = "State-wise Value Table", align = "c") %>%
+kable(data2, caption = "State-wise Value Table", align = "c") %>%
   kable_styling(
     font_size = 14, 
     bootstrap_options = c("striped", "hover", "condensed", "responsive"), 

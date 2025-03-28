@@ -321,12 +321,12 @@ Most of chemical in the graph is toxic. Especially for the Top 3, **Chloropicrin
 chemical_data2 <- chemical_data |>
   filter(Category == "APPLICATIONS, MEASURED IN LB / ACRE / YEAR, AVG")
 
-result <- chemical_data2 %>%
-  group_by(Amount) %>%
+result <- chemical_data2 |>
+  group_by(Amount) |>
   summarise(AvgValue = mean(Value, na.rm = TRUE))
 print(result)
 
-result_no_zero <- result %>%
+result_no_zero <- result |>
   filter(AvgValue != 0)|>
   arrange(desc(AvgValue))
 head(result_no_zero)
@@ -364,7 +364,7 @@ result2 <- chemical_data3 |>
   summarise(AvgValue = mean(Value, na.rm = TRUE))
 print(result2)
 
-result_no_zero2 <- result2 %>%
+result_no_zero2 <- result2 |>
   filter(AvgValue != 0)|>
   arrange(desc(AvgValue))
 
